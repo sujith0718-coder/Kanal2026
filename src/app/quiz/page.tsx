@@ -33,8 +33,8 @@ function QuizContent() {
         setQuiz({
           id: 'quiz-dsa-trees-1',
           topicId,
-          topicName: 'Binary Search Trees & AVL',
-          title: '2-Minute Mastery Check: BST & AVL Rotations',
+          topicName: 'Academic Topic',
+          title: '2-Minute Mastery Check',
           createdAt: new Date().toISOString(),
           questions: [
             {

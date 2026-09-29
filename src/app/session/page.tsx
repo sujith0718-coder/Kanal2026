@@ -44,9 +44,9 @@ function SessionContent() {
           Structured Study Session
         </span>
         <h1 className="text-3xl font-bold text-white tracking-tight">
-          Binary Search Trees &amp; AVL Rotations
+          Active Study Session
         </h1>
-        <p className="text-xs text-gray-400">Data Structures &amp; Algorithms (CS301)</p>
+        <p className="text-xs text-gray-400">Academic Topic Focus</p>
       </div>
 
       {/* Pomodoro Phase Progress Bar */}

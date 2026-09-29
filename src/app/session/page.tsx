@@ -14,7 +14,7 @@ function SessionContent() {
 
   const [timeLeft, setTimeLeft] = useState(duration * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const currentPhase = 'Learn';
+  const [currentPhase] = useState<'Recall' | 'Learn' | 'Practice' | 'WrapUp'>('Learn');
 
   useEffect(() => {
     let timer: NodeJS.Timeout;

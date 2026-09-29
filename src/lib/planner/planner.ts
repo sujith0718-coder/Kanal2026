@@ -83,9 +83,14 @@ export function generateCandidatePlan(options: GeneratePlanOptions): {
     const maxDayCap = getDailyAvailableMinutes(dayDate, options.availability, options.userProfile);
     dayScheduledMinutes[dateStr] = 0;
 
-    // Retrieve availability windows for this day
-    const dayWindows = options.availability.filter((w) => w.dayOfWeek === dayOfWeek);
+    // Retrieve availability windows for this day, sorted by start time.
+    const dayWindows = options.availability
+      .filter((w) => w.dayOfWeek === dayOfWeek)
+      .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+
     let currentWindowStart = dayWindows.length > 0 ? dayWindows[0].startTime : '17:00';
+    let currentWindowEnd = dayWindows.length > 0 ? dayWindows[0].endTime : '20:00';
+    let windowIndex = 0;
 
     for (const item of topicPriorities) {
       if (item.remainingMinutes <= 0) continue;
@@ -102,17 +107,44 @@ export function generateCandidatePlan(options: GeneratePlanOptions): {
       const availableToday = maxDayCap - dayScheduledMinutes[dateStr];
       if (availableToday < 30) break; // Day capacity reached
 
-      const sessionDuration = Math.min(45, availableToday, item.remainingMinutes);
-      if (sessionDuration < 30 && item.remainingMinutes >= 30) continue; // Minimum 30m chunk
+      // Find the next available slot in the day's windows, respecting each window's end time.
+      let chosenStart = currentWindowStart;
+      let chosenEnd = currentWindowEnd;
+      let sessionDuration = 0;
 
-      // Compute start and end times
-      const startTime = currentWindowStart;
-      const endTime = addMinutesToTimeStr(startTime, sessionDuration);
+      while (windowIndex < dayWindows.length) {
+        const windowStartMinutes = timeToMinutes(currentWindowStart);
+        const windowEndMinutes = timeToMinutes(currentWindowEnd);
+        const remainingInWindow = Math.max(0, windowEndMinutes - windowStartMinutes);
+
+        if (remainingInWindow >= 30) {
+          sessionDuration = Math.min(45, availableToday, item.remainingMinutes, remainingInWindow);
+          if (sessionDuration >= 30) {
+            chosenStart = currentWindowStart;
+            chosenEnd = addMinutesToTimeStr(chosenStart, sessionDuration);
+            break;
+          }
+        }
+
+        windowIndex += 1;
+        if (windowIndex >= dayWindows.length) {
+          chosenStart = '';
+          chosenEnd = '';
+          break;
+        }
+
+        currentWindowStart = dayWindows[windowIndex].startTime;
+        currentWindowEnd = dayWindows[windowIndex].endTime;
+      }
+
+      if (!chosenStart || !chosenEnd || sessionDuration < 30) {
+        continue;
+      }
 
       const subject = subjectMap.get(item.topic.subjectId);
 
       const session: StudySession = {
-        id: `ses-${item.topic.id}-${dateStr}-${startTime.replace(':', '')}`,
+        id: `ses-${item.topic.id}-${dateStr}-${chosenStart.replace(':', '')}`,
         userId: options.userId,
         topicId: item.topic.id,
         topicName: item.topic.name,
@@ -120,8 +152,8 @@ export function generateCandidatePlan(options: GeneratePlanOptions): {
         subjectName: subject ? subject.name : 'Academic Subject',
         planVersionId: options.planVersionId,
         date: dateStr,
-        startTime,
-        endTime,
+        startTime: chosenStart,
+        endTime: chosenEnd,
         durationMinutes: sessionDuration,
         energyRequirement: item.topic.difficulty,
         status: 'PLANNED',
@@ -133,8 +165,20 @@ export function generateCandidatePlan(options: GeneratePlanOptions): {
       dayScheduledMinutes[dateStr] += sessionDuration;
       item.remainingMinutes -= sessionDuration;
 
-      // Advance window start time for next session with a 15 min break
-      currentWindowStart = addMinutesToTimeStr(endTime, 15);
+      // Advance window start time for next session with a 15 minute break.
+      currentWindowStart = addMinutesToTimeStr(chosenEnd, 15);
+      if (dayWindows.length > 0) {
+        // If the cursor moved beyond the active window, jump to the next available window.
+        if (timeToMinutes(currentWindowStart) >= timeToMinutes(currentWindowEnd)) {
+          windowIndex += 1;
+          if (windowIndex < dayWindows.length) {
+            currentWindowStart = dayWindows[windowIndex].startTime;
+            currentWindowEnd = dayWindows[windowIndex].endTime;
+          }
+        }
+      } else {
+        currentWindowEnd = '20:00';
+      }
     }
   }
 
@@ -159,4 +203,9 @@ function addMinutesToTimeStr(timeStr: string, minsToAdd: number): string {
   const newH = Math.floor(totalMins / 60);
   const newM = totalMins % 60;
   return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+}
+
+function timeToMinutes(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
 }

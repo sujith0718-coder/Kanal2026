@@ -35,12 +35,16 @@ export function validateHardConstraints(
 
   // 1. Check daily capacity limits & overlaps per date
   for (const [dateStr, daySessions] of Object.entries(sessionsByDate)) {
+    const dateObj = parseISO(dateStr);
+    const dayWindows = availability.filter((w) => w.dayOfWeek === dateObj.getDay());
     const totalDayMinutes = daySessions.reduce((sum, s) => sum + s.durationMinutes, 0);
+    const availableWindowMinutes = dayWindows.reduce((sum, w) => sum + w.durationMinutes, 0);
+    const effectiveDailyCap = Math.min(dailyCapacityMinutes, availableWindowMinutes || dailyCapacityMinutes);
 
-    if (totalDayMinutes > dailyCapacityMinutes) {
+    if (totalDayMinutes > effectiveDailyCap) {
       violations.push({
         type: 'CAPACITY_EXCEEDED',
-        message: `Date ${dateStr} has total scheduled study time of ${totalDayMinutes}m exceeding daily limit of ${dailyCapacityMinutes}m`,
+        message: `Date ${dateStr} has total scheduled study time of ${totalDayMinutes}m exceeding daily limit of ${effectiveDailyCap}m`,
       });
     }
 
@@ -55,6 +59,23 @@ export function validateHardConstraints(
             sessionId: s1.id,
             type: 'OVERLAP',
             message: `Session ${s1.topicName || s1.id} (${s1.startTime}-${s1.endTime}) overlaps with ${s2.topicName || s2.id} (${s2.startTime}-${s2.endTime}) on ${dateStr}`,
+          });
+        }
+      }
+    }
+
+    // Check that each session falls within at least one allowed availability window.
+    if (dayWindows.length > 0) {
+      for (const session of daySessions) {
+        const sessionStart = toMinutes(session.startTime);
+        const sessionEnd = toMinutes(session.endTime);
+        const coveredMinutes = mergeAndCoverWindows(dayWindows, sessionStart, sessionEnd);
+
+        if (coveredMinutes < sessionEnd - sessionStart) {
+          violations.push({
+            sessionId: session.id,
+            type: 'UNAVAILABLE_TIME',
+            message: `Session ${session.topicName || session.id} (${session.startTime}-${session.endTime}) falls outside the available windows on ${dateStr}`,
           });
         }
       }
@@ -110,4 +131,41 @@ export function checkTimeOverlap(start1: string, end1: string, start2: string, e
   const t2e = h2e * 60 + m2e;
 
   return Math.max(t1s, t2s) < Math.min(t1e, t2e);
+}
+
+function mergeAndCoverWindows(windows: AvailabilityWindow[], sessionStart: number, sessionEnd: number): number {
+  const ranges = windows
+    .map((window) => [toMinutes(window.startTime), toMinutes(window.endTime)] as const)
+    .sort((a, b) => a[0] - b[0]);
+
+  const merged: Array<[number, number]> = [];
+  for (const [start, end] of ranges) {
+    if (merged.length === 0) {
+      merged.push([start, end]);
+      continue;
+    }
+
+    const last = merged[merged.length - 1];
+    if (start <= last[1]) {
+      last[1] = Math.max(last[1], end);
+    } else {
+      merged.push([start, end]);
+    }
+  }
+
+  let covered = 0;
+  for (const [start, end] of merged) {
+    const overlapStart = Math.max(start, sessionStart);
+    const overlapEnd = Math.min(end, sessionEnd);
+    if (overlapEnd > overlapStart) {
+      covered += overlapEnd - overlapStart;
+    }
+  }
+
+  return covered;
+}
+
+function toMinutes(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
 }

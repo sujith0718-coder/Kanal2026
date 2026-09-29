@@ -5,6 +5,7 @@ import { validateHardConstraints } from '../src/lib/planner/conflicts';
 import { calculatePlanFeasibility } from '../src/lib/planner/feasibility';
 import { calculateExamRisk } from '../src/lib/planner/risk';
 import { updateTopicMastery } from '../src/lib/planner/mastery';
+import { generateCandidatePlan } from '../src/lib/planner/planner';
 import { Topic, Exam, AvailabilityWindow, StudySession, Subject } from '../src/types';
 import { addDays, format } from 'date-fns';
 
@@ -114,5 +115,47 @@ describe('StudyAI Planning Engine Unit Tests', () => {
     expect(result.newMastery).toBe(80);
     expect(result.newStatus).toBe('HIGH');
     expect(result.delta).toBe(30);
+  });
+
+  it('7. Candidate planner respects multiple availability windows without scheduling outside study hours', () => {
+    const targetDay = new Date(2026, 8, 28);
+    const availability: AvailabilityWindow[] = [
+      { id: 'w1', userId: 'u1', dayOfWeek: 1, startTime: '09:00', endTime: '11:00', durationMinutes: 120 },
+      { id: 'w2', userId: 'u1', dayOfWeek: 1, startTime: '18:00', endTime: '20:00', durationMinutes: 120 },
+    ];
+
+    const topics: Topic[] = [
+      { id: 't1', subjectId: 's1', name: 'Topic 1', difficulty: 'HIGH', estimatedMastery: 55, masteryStatus: 'MEDIUM', estimatedMinutesRequired: 120, completedMinutes: 0 },
+      { id: 't2', subjectId: 's2', name: 'Topic 2', difficulty: 'MEDIUM', estimatedMastery: 65, masteryStatus: 'MEDIUM', estimatedMinutesRequired: 90, completedMinutes: 0 },
+    ];
+
+    const result = generateCandidatePlan({
+      userId: 'u1',
+      planVersionId: 'v1',
+      topics,
+      subjects: [
+        { id: 's1', userId: 'u1', name: 'Subject 1', createdAt: '' },
+        { id: 's2', userId: 'u1', name: 'Subject 2', createdAt: '' },
+      ],
+      exams: [],
+      availability,
+      energyPreferences: [],
+      userProfile: { id: 'u1', name: 'Alex', email: 'a@a.com', dailyCapacityMinutes: 240, createdAt: '' },
+      currentDate: targetDay,
+      planningHorizonDays: 1,
+    });
+
+    expect(result.violations.some((v) => v.type === 'UNAVAILABLE_TIME')).toBe(false);
+    expect(result.sessions.every((s) => s.date === format(targetDay, 'yyyy-MM-dd'))).toBe(true);
+    for (const session of result.sessions) {
+      const sessionStart = Number(session.startTime.replace(':', '').slice(0, 2)) * 60 + Number(session.startTime.replace(':', '').slice(2, 4));
+      const sessionEnd = Number(session.endTime.replace(':', '').slice(0, 2)) * 60 + Number(session.endTime.replace(':', '').slice(2, 4));
+      const isWithinWindow = availability.some((window) => {
+        const start = Number(window.startTime.replace(':', '').slice(0, 2)) * 60 + Number(window.startTime.replace(':', '').slice(2));
+        const end = Number(window.endTime.replace(':', '').slice(0, 2)) * 60 + Number(window.endTime.replace(':', '').slice(2));
+        return sessionStart >= start && sessionEnd <= end;
+      });
+      expect(isWithinWindow).toBe(true);
+    }
   });
 });

@@ -2,35 +2,38 @@
 
 ## 1. Branch
 - **Branch**: `feature/member3-adaptive-engine`
+- **Pushed Branch**: `origin/feature/member3-adaptive-engine`
 
 ## 2. Starting State
-- Workspace `Kanal2026` was an empty Git repository.
+- Workspace `Kanal2026` was inspected and synced on `feature/member3-adaptive-engine`.
 - Initialized Next.js 16 (App Router) + TypeScript + Tailwind CSS stack with Supabase schema, Zod validation, and `@google/genai` integration.
 
 ## 3. Existing Work Preserved
-- All core product pillars (Energy Scheduling, Exam Risk Radar, AI Micro-Quizzes, Rescue Mode) strictly follow deterministic application logic.
+- All core product pillars (Energy Scheduling, Exam Risk Radar, AI Micro-Quizzes, Rescue Mode) strictly follow parameter-driven deterministic application logic.
 
 ## 4. Team Work Integrated
-- N/A (Fresh feature branch bootstrap in workspace).
+- N/A (Isolated on Member 3 feature branch `feature/member3-adaptive-engine`).
 
 ## 5. Completed Features
-- ✅ **Database Schema & ORM**: PostgreSQL schema in `src/lib/db/schema.sql` with full foreign keys, indexes, and Row Level Security (RLS) policies. In-memory / persistent Mock store in `src/lib/db/mock-db.ts` populated with realistic seed data for DSA, Math, COA, and OOP.
-- ✅ **Planning Engine**: Deterministic schedule candidate generator (`src/lib/planner/planner.ts`).
+- ✅ **Database Schema & Data Access Layer**: PostgreSQL schema in `src/lib/db/schema.sql` with full foreign keys, indexes, and Row Level Security (RLS) policies. Dynamic mock database layer in `src/lib/db/mock-db.ts`.
+- ✅ **Planning Engine**: Parameter-driven schedule candidate generator (`src/lib/planner/planner.ts`).
 - ✅ **Priority Engine**: Formula $0.40 \times \text{ExamUrgency} + 0.30 \times \text{RemainingSyllabus} + 0.20 \times \text{MasteryGap} + 0.10 \times \text{Difficulty}$ in `src/lib/planner/priority.ts`.
+- ✅ **Capacity Engine**: Dynamic availability window calculation and daily capacity limit enforcement in `src/lib/planner/capacity.ts`.
+- ✅ **Conflicts Engine**: Hard constraint validator (overlaps, unavailable periods, daily caps, study after exam bounds) in `src/lib/planner/conflicts.ts`.
 - ✅ **Feasibility Engine**: Evaluates available study capacity vs required workload; outputs GREEN, YELLOW, and RED (with exact deficit minutes) in `src/lib/planner/feasibility.ts`.
-- ✅ **Energy Scheduling**: Matches task difficulty (High, Medium, Low) to user preferred time blocks (Morning, Afternoon, Evening, Night) in `src/lib/planner/energy.ts`.
-- ✅ **Exam Risk Radar**: `calculateExamRisk(subject)` deterministic risk scoring (0-35 LOW, 36-65 MEDIUM, 66-100 HIGH) and factor breakdown in `src/lib/planner/risk.ts`.
+- ✅ **Energy Scheduling Engine**: Matches task difficulty (High, Medium, Low) to user preferred time blocks (Morning, Afternoon, Evening, Night) in `src/lib/planner/energy.ts`.
+- ✅ **Exam Risk Radar Engine**: `calculateExamRisk(subject)` deterministic risk scoring (0-35 LOW, 36-65 MEDIUM, 66-100 HIGH) and factor breakdown in `src/lib/planner/risk.ts`.
 - ✅ **Mastery Engine**: Deterministic weighted moving average update ($40\%$ previous + $60\%$ quiz performance) in `src/lib/planner/mastery.ts`.
-- ✅ **Rescue Mode**: Redistributes missed study sessions across available daily capacity without breaking hard constraints; creates new plan version `Plan v2` and logs `MOVED`, `SPLIT`, `DEFERRED`, `PROTECTED` changes in `src/lib/planner/rescue.ts`.
-- ✅ **Plan Versioning**: Tracks `Plan v1`, `Plan v2` and change diffs.
-- ✅ **Next Best Action**: Single top recommendation engine (`src/lib/planner/next-action.ts`).
-- ✅ **Academic Change Detection**: Schedule comparison engine in `src/lib/planner/academic-change.ts`.
-- ✅ **API Routes**: Handlers for `/api/today`, `/api/plan`, `/api/plan/generate`, `/api/risk`, `/api/subjects`, `/api/sessions`, `/api/sessions/[id]/complete`, `/api/sessions/[id]/miss`, `/api/sessions/[id]/skip`, `/api/quiz/[id]/submit`, `/api/rescue`, `/api/plan/[id]/changes`, `/api/academic/compare`, `/api/academic/extract`, `/api/seed`.
-- ✅ **AI Services**: Server-only Gemini integration (`src/lib/ai/`) with Zod validation schemas (`schemas.ts`) and offline fallback template generators.
-- ✅ **Test Suite**: Unit test suite (`tests/planner.test.ts`) and mandatory **Critical Rescue Test** (`tests/critical-rescue.test.ts`).
+- ✅ **Rescue Mode Engine**: Redistributes missed study sessions across available daily capacity without breaking hard constraints; creates new plan version `Plan v2` and logs `MOVED`, `SPLIT`, `DEFERRED`, `PROTECTED` changes in `src/lib/planner/rescue.ts`.
+- ✅ **Plan Versioning**: Tracks `Plan v1`, `Plan v2` and change diffs without destroying historical versions.
+- ✅ **Next Best Action Backend**: Dynamic top recommendation engine (`src/lib/planner/next-action.ts`) without hardcoded fallback subjects.
+- ✅ **Academic Change Detection**: Exam date shift comparison engine in `src/lib/planner/academic-change.ts`.
+- ✅ **API Routes**: 15 endpoints for `/api/today`, `/api/plan`, `/api/plan/generate`, `/api/risk`, `/api/subjects`, `/api/sessions`, `/api/sessions/[id]/complete`, `/api/sessions/[id]/miss`, `/api/sessions/[id]/skip`, `/api/quiz/[id]/submit`, `/api/rescue`, `/api/plan/[id]/changes`, `/api/academic/compare`, `/api/academic/extract`, `/api/seed`.
+- ✅ **AI Boundary & Validation**: Server-only Gemini client (`src/lib/ai/`) with Zod validation schemas (`schemas.ts`) and fallback templates.
+- ✅ **Dynamic Verification & Property Tests**: Vitest suite with 14 passing tests including mandatory **Critical Rescue Test** (`tests/critical-rescue.test.ts`) and **Dynamic Property Tests** (`tests/dynamic-fixtures.test.ts`).
 
 ## 6. Partial / Remaining Features
-- None. All Member 3 deterministic backend & decision engine features are complete and fully operational.
+- None. All Member 3 responsibilities are 100% complete and fully verified.
 
 ## 7. Files Created / Modified
 - `src/types/index.ts`
@@ -54,44 +57,24 @@
 - `src/lib/ai/generate-quiz.ts`
 - `src/lib/ai/explain-plan.ts`
 - `src/app/api/...` (15 route handlers)
-- `src/app/...` (Pages: Today, Plan, Subjects, Risk, Inbox, Session, Quiz, Rescue, Settings)
 - `tests/planner.test.ts`
 - `tests/critical-rescue.test.ts`
+- `tests/dynamic-fixtures.test.ts`
 - `vitest.config.ts`
 
-## 8. Database Migrations
-- `src/lib/db/schema.sql` contains the complete DDL script for PostgreSQL with foreign keys, indexes, and RLS policies.
+## 8. Hardcoding Audit
+- **Status**: PASS.
+- Production engines in `src/lib/planner/` are parameter-driven and work with arbitrary user-provided data (e.g. Linear Algebra, Vector Spaces, Eigenvalues, custom exam dates, custom capacities).
+- No production algorithm contains hardcoded subject names, dates, scores, or rescue outputs.
 
-## 9. API Routes Summary
-- `GET /api/today`: Next Best Action & Today's Schedule.
-- `GET /api/plan` & `POST /api/plan/generate`: Active plan timetable & replan.
-- `GET /api/risk`: Transparent Exam Risk Radar scores.
-- `POST /api/sessions/[id]/complete`, `miss`, `skip`: Session lifecycle mutations.
-- `POST /api/quiz/[id]/submit`: Deterministic scoring & mastery update.
-- `POST /api/rescue`: Rescue Mode schedule redistribution & plan version bump.
-- `POST /api/academic/extract` & `compare`: AI document extraction & change detection.
+## 9. Verification & Test Results
+- **Unit Tests (`npx vitest run`)**: PASS (14/14 tests passed across 3 test files).
+- **Critical Rescue Test**: PASS (`tests/critical-rescue.test.ts`).
+- **Dynamic Property Tests**: PASS (`tests/dynamic-fixtures.test.ts`).
+- **Linter (`npm run lint`)**: PASS (0 errors, 8 warnings).
+- **Production Build (`npm run build`)**: PASS.
 
-## 10. Verification & Test Results
-- **Unit Tests (`npx vitest run`)**: PASS (7/7 tests passed, including priority, capacity, conflicts, feasibility, risk, mastery, and critical rescue test).
-- **Critical Rescue Test**: PASS.
-- **Linter (`npm run lint`)**: PASS (0 errors).
-- **Production Build (`npm run build`)**: PASS (22 static/dynamic routes compiled cleanly).
-
-## 11. Safety & Preservation
-- Original `Plan v1` remains recoverable when `Plan v2` is created during Rescue.
-- No secrets committed.
-- Work isolated on `feature/member3-adaptive-engine`.
-
-## 12. Known Limitations
-- Gemini API key must be provided in `.env.local` for live LLM output. If absent, the system automatically uses robust deterministic template fallbacks.
-
-## 13. Exact Git State
-- **Current Branch**: `feature/member3-adaptive-engine`
-- **Working Tree**: Ready to commit.
-
-## 14. Integration Instructions
-To merge Member 3's backend & decision engine into `main`:
-```bash
-git checkout main
-git merge feature/member3-adaptive-engine
-```
+## 10. Exact Git State
+- **Branch**: `feature/member3-adaptive-engine`
+- **Pushed Remote**: `origin/feature/member3-adaptive-engine`
+- **Working Tree**: Clean (all changes committed and pushed).

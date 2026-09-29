@@ -51,8 +51,8 @@ export function getNextBestAction(
     }
   }
 
-  const topicName = targetTopic?.name || 'Binary Search Trees & AVL';
-  const subjectName = targetSubject?.name || 'Data Structures & Algorithms';
+  const topicName = targetTopic?.name || 'Academic Topic';
+  const subjectName = targetSubject?.name || 'Academic Subject';
   const durationMinutes = targetSession?.durationMinutes || 45;
   const daysUntilExam = targetExam?.examDate
     ? differenceInDays(parseISO(targetExam.examDate), currentDate)
@@ -61,16 +61,18 @@ export function getNextBestAction(
   const reasonFactors: string[] = [];
   if (daysUntilExam !== undefined && daysUntilExam <= 5) {
     reasonFactors.push(`Exam is approaching in ${daysUntilExam} day(s)`);
+  } else if (targetExam?.examDate) {
+    reasonFactors.push(`Upcoming exam scheduled on ${targetExam.examDate}`);
   } else {
-    reasonFactors.push('High exam urgency score');
+    reasonFactors.push('Syllabus workload requirement');
   }
 
-  const mastery = targetTopic?.estimatedMastery ?? 52;
+  const mastery = targetTopic?.estimatedMastery ?? 0;
   if (mastery < 60) {
-    reasonFactors.push(`Mastery gap is significant (${mastery}% estimated mastery)`);
+    reasonFactors.push(`Mastery gap identified (${mastery}% estimated mastery)`);
   }
 
-  reasonFactors.push('Core syllabus requirement');
+  reasonFactors.push('Core syllabus priority');
 
   let priorityLevel: 'High' | 'Medium' | 'Low' = 'High';
   if (highestPriorityScore < 40) priorityLevel = 'Low';
@@ -78,15 +80,15 @@ export function getNextBestAction(
 
   return {
     session: targetSession,
-    topicId: targetTopic?.id || 'top-dsa-trees',
+    topicId: targetTopic?.id || '',
     topicName,
-    subjectId: targetSubject?.id || 'sub-dsa',
+    subjectId: targetSubject?.id || '',
     subjectName,
     durationMinutes,
     examDate: targetExam?.examDate,
     daysUntilExam,
     estimatedMastery: mastery,
-    priorityScore: highestPriorityScore > 0 ? highestPriorityScore : 82,
+    priorityScore: Math.max(0, highestPriorityScore),
     priorityLevel,
     reasonFactors,
   };

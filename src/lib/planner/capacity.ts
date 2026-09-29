@@ -17,7 +17,10 @@ export function getDailyAvailableMinutes(
   const dailyCap = userProfile?.dailyCapacityMinutes || 240; // Default 4 hours
 
   // Total capacity cannot exceed user's explicit daily capacity limit or window duration
-  return Math.min(dailyCap, totalWindowMinutes > 0 ? totalWindowMinutes : dailyCap);
+  if (availabilityWindows.length > 0) {
+    return totalWindowMinutes > 0 ? Math.min(dailyCap, totalWindowMinutes) : 0;
+  }
+  return dailyCap;
 }
 
 /**
